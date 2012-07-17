@@ -1,9 +1,9 @@
 // Run the script on DOM ready:
 $(function(){
 	$('table').visualize('pie', {height: '300px', width: '420px'});
-	$('table').visualize('bar', {width: '420px'});
-	$('table').visualize('area', {width: '420px'});
-	$('table').visualize('line', {width: '420px'});
+	$('table').visualize('bar', {topValue:250,bottomValue:0,width: '420px'});
+	$('table').visualize('area', {topValue:250,bottomValue:0,width: '420px'});
+	$('table').visualize('line', {topValue:250,bottomValue:0,width: '420px'});
 
 	$('table').visualize('radar', {width: '420px'});
 

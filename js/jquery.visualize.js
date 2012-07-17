@@ -194,13 +194,21 @@
 		},
 
 		topValue:function () {
-			if (this._topValue) return this._topValue;
-			return (this._topValue = Array.max(this.allData()));
+			if(this.options.topValue !== false) {
+				return this.options.topValue ;
+			} else {	
+				if (this._topValue) return this._topValue;
+				return (this._topValue = Array.max(this.allData()));
+			}
 		},
 
 		bottomValue:function () {
-			if (this._bottomValue) return this._bottomValue;
-			return (this._bottomValue = Array.min(this.allData()));
+			if(this.options.bottomValue !== false) {
+				return this.options.bottomValue ;
+			} else {	
+				if (this._bottomValue) return this._bottomValue;
+				return (this._bottomValue = Array.min(this.allData()));
+			}
 		},
 
 		memberTotals:function () {
@@ -284,6 +292,12 @@
 			//configuration
 			var o = $.extend({
 				type:'bar', //also available: area, pie, line
+				
+				// options to set the range of the numeric axis
+				// work with area, line, bar and plugin using the topValue and bottomValue functions
+				topValue:false, // the max value
+				bottomValue:false, // the min value
+				
 				width:$table.width(), //height of canvas - defaults to table height
 				height:$table.height(), //height of canvas - defaults to table height
 				appendTitle:true, //table caption text is added to chart
