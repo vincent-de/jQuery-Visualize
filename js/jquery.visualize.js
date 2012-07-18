@@ -6,8 +6,10 @@
  * licensed under MIT (filamentgroup.com/examples/mit-license.txt)
  *
  * Extended version
- * Author: Christophe Desguez, https://github.com/zipang
- * https://github.com/zipang/jQuery-Visualize
+ * Author(s): 
+ * - Christophe Desguez, https://github.com/zipang
+ * - vincent-de, https://github.com/vincent-de
+ * https://github.com/vincent-de/jQuery-Visualize
  * -------------------------------------------------------------------- */
 (function ($) {
 	$.visualize = {
@@ -99,19 +101,24 @@
 
 			var rowFilter = this.options.rowFilter,
 				colFilter = this.options.colFilter,
-				lines = [], lineHeaders = [], columnHeaders = [];
+				lines = [], lineHeaders = [], columnHeaders = [],
+				rows = this.options.rows, cols = this.options.cols ;
 
 			$("tr", this.table).filter(rowFilter).each(function (i, tr) {
-				var cells = [];
-				$("th, td", $(tr)).filter(colFilter).each(function (j, td) {
-					cells.push((i == 0) || (j == 0)? $(td).text() : parseFloat($(td).text()));
-				});
-				if (i == 0) {
-					cells.shift();
-					columnHeaders = cells;
-				} else {
-					lineHeaders.push(cells.shift());
-					lines.push(cells);
+				if(rows==null||(i==0||$.inArray(i,rows)!=-1)) {
+					var cells = [];
+					$("th, td", $(tr)).filter(colFilter).each(function (j, td) {
+						if(cols==null||(j==0||$.inArray(j,cols)!=-1)) {
+							cells.push((i == 0) || (j == 0)? $(td).text() : parseFloat($(td).text()));
+						}
+					});
+					if (i == 0) {
+						cells.shift();
+						columnHeaders = cells;
+					} else {
+						lineHeaders.push(cells.shift());
+						lines.push(cells);
+					}
 				}
 			});
 
@@ -137,45 +144,60 @@
 		dataGroups:function () {
 			if (this._dataGroups) return this._dataGroups; // stored result
 
-			var dataGroups = [];
+			var dataGroups = [] ;
 			var colors = this.options.colors,
 				textColors = this.options.textColors,
 				rowFilter = this.options.rowFilter,
-				colFilter = this.options.colFilter;
-
+				colFilter = this.options.colFilter,
+				cols = this.options.cols,
+				rows = this.options.rows,
+				indexGroup = 0 ;
+			
 			if (this.options.parseDirection == 'x') {
 				this.table.find('tr:gt(0)').filter(rowFilter).each(function (i, tr) {
-					dataGroups[i] = {};
-					dataGroups[i].points = [];
-					dataGroups[i].points_weight = [];
-					dataGroups[i].color = colors[i];
-					if (textColors[i]) {
-						dataGroups[i].textColor = textColors[i];
+					if(rows==null||($.inArray((i+1),rows)!=-1)) {
+						dataGroups[indexGroup] = {};
+						dataGroups[indexGroup].points = [];
+						dataGroups[indexGroup].index = i;
+						dataGroups[indexGroup].points_weight = [];
+						dataGroups[indexGroup].color = colors[indexGroup];
+						if (textColors[indexGroup]) {
+							dataGroups[indexGroup].textColor = textColors[indexGroup];
+						}
+						$(tr).find('td').filter(colFilter).each(function (j,td) {
+							if(cols==null||($.inArray(j+1,cols)!=-1)) {
+								var values = $(this).text().split(";");
+								dataGroups[indexGroup].points.push(values.length > 0 ? parseFloat(values[0]) : 0);
+								dataGroups[indexGroup].points_weight.push(values.length > 1 ? parseFloat(values[1]) : 1);
+							}
+						});
+						indexGroup ++ ;
 					}
-					$(tr).find('td').filter(colFilter).each(function () {
-						var values = $(this).text().split(";");
-						dataGroups[i].points.push(values.length > 0 ? parseFloat(values[0]) : 0);
-						dataGroups[i].points_weight.push(values.length > 1 ? parseFloat(values[1]) : 1);
-					});
 				});
-
 			} else {
-				var cols = this.table.find('tr:eq(1) td').filter(colFilter).size();
-				for (var i = 0; i < cols; i++) {
-					dataGroups[i] = {};
-					dataGroups[i].points = [];
-					dataGroups[i].points_weight = [];
-					dataGroups[i].color = colors[i];
-					if (textColors[i]) {
-						dataGroups[i].textColor = textColors[i];
+				var td = this.table.find('tr:eq(1) td').filter(colFilter).size();
+				for (var i = 0; i < td; i++) {
+					if(cols==null||($.inArray(i+1,cols)!=-1)) {
+						dataGroups[indexGroup] = {};
+						dataGroups[indexGroup].points = [];
+						dataGroups[indexGroup].index = i;
+						dataGroups[indexGroup].points_weight = [];
+						dataGroups[indexGroup].color = colors[indexGroup];
+						if (textColors[indexGroup]) {
+							dataGroups[indexGroup].textColor = textColors[indexGroup];
+						}
+						this.table.find('tr:gt(0)').filter(rowFilter).each(function (j,td) {
+							if(rows==null||($.inArray(j+1,rows)!=-1)) {
+								var values = $(this).find('td').filter(colFilter).eq(i).text().split(";");
+								dataGroups[indexGroup].points.push(values.length > 0 ? parseFloat(values[0]) : 0);
+								dataGroups[indexGroup].points_weight.push(values.length > 1 ? parseFloat(values[1]) : 1);
+							}
+						});
+						indexGroup ++ ;
 					}
-					this.table.find('tr:gt(0)').filter(rowFilter).each(function () {
-						var values = $(this).find('td').filter(colFilter).eq(i).text().split(";");
-						dataGroups[i].points.push(values.length > 0 ? parseFloat(values[0]) : 0);
-						dataGroups[i].points_weight.push(values.length > 1 ? parseFloat(values[1]) : 1);
-					});
 				}
 			}
+
 			return (this._dataGroups = dataGroups);
 		},
 
@@ -248,16 +270,22 @@
 		},
 
 		parseHeaders:function (direction) {
-			var headers = this._headers[direction];
+			var headers = this._headers[direction],
+						cols = this.options.cols,
+						rows = this.options.rows;
 			if (headers.length) return headers; // allready filled
 
 			if (direction == 'x') { // parse the column headers
 				this.table.find('tr:eq(0) th').filter(this.options.colFilter).each(function (i, th) {
-					headers.push($(th).html());
+					if(cols==null||($.inArray(i+1,cols)>-1)) {
+						headers.push($(th).html());
+					}
 				});
 			} else { // parse the line headers
 				this.table.find('tr:gt(0) th').filter(this.options.rowFilter).each(function (i, th) {
-					headers.push($(th).html());
+					if(rows==null||($.inArray(i+1,rows)>-1)) {
+						headers.push($(th).html());
+					}
 				});
 			}
 			return headers;
@@ -297,6 +325,8 @@
 				// work with area, line, bar and plugin using the topValue and bottomValue functions
 				topValue:false, // the max value
 				bottomValue:false, // the min value
+				cols:null,
+				rows:null,
 				
 				width:$table.width(), //height of canvas - defaults to table height
 				height:$table.height(), //height of canvas - defaults to table height
